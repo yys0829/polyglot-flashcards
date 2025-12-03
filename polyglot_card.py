@@ -25,7 +25,7 @@ LANG_MAP = {
     'en': {'name': '英语 (EN)', 'lang_code': 'en'}
 }
 
-# --- 辅助函数：注入CSS样式 ---
+# --- 辅助函数：注入CSS样式 (已包含强力隐藏规则) ---
 def apply_compact_styles():
     st.markdown("""
     <style>
@@ -73,16 +73,25 @@ def apply_compact_styles():
         line-height: 1.4; 
     }
     
-    /* === 隐藏右下角所有浮动图标 (Manage app, 蓝色像素图标, 红色皇冠) === */
-    .st-emotion-cache-12fmj6l {
+    /* === 隐藏右下角所有浮动图标和 Manage app 按钮 (强力更新) === */
+
+    /* 1. 隐藏 Streamlit 警告信息 (来自 stStatusWidget 的黄色条) */
+    [data-testid="stStatusWidget"] {
         display: none !important;
     }
-    .st-emotion-cache-n0v05b, 
-    .st-emotion-cache-j7qwjs,
-    .st-emotion-cache-1j0083 {
+
+    /* 2. 隐藏 Manage app 按钮及其容器 */
+    .st-emotion-cache-n0v05b, /* Manage App 按钮容器 */
+    .st-emotion-cache-1j0083, /* 蓝色像素和红色皇冠图标 */
+    .st-emotion-cache-12fmj6l, /* 较旧版本的浮动容器 */
+    .st-emotion-cache-1jm69yr, /* Streamlit 较新版本浮动容器 */
+    .st-emotion-cache-10m726t, /* 另一个 Streamlit 浮动容器 */
+    .st-emotion-cache-13l3q88 { /* 另一个 Streamlit 浮动容器 */
         display: none !important;
+        visibility: hidden !important; 
+        z-index: -9999 !important; 
     }
-    /* ====================================================================== */
+    /* ========================================================= */
     
     /* 优化音标缺失的显示 */
     .ipa-missing-text {
@@ -240,9 +249,8 @@ def generate_base64_audio(text, lang_code):
     except Exception as e:
         return f""
 
-# --- 5. 核心：批量填充现有词汇的音标 (移除该函数，但保留其代码在历史记录中) ---
 
-# --- 6. 界面主程序 (侧边栏调整) ---
+# --- 5. 界面主程序 (侧边栏已调整) ---
 def main():
     st.set_page_config(page_title="多语种智能记忆卡", layout="centered")
     apply_compact_styles()
@@ -401,6 +409,8 @@ def main():
 
 
     # --- 按钮和信息放在同一行 ---
+    col1, col2, col3 = st.columns([1, 1, 2.5])
+
     with col1:
         st.button("⬅️ 上一个", on_click=navigate_card, args=(-1, current_word['cn']), key="prev_card")
     
@@ -446,58 +456,3 @@ def main():
                          st.markdown(f"**[{ipa}]**") # 使用粗体显示音标
                     else:
                          # 显示普通文本“音标缺失”
-                         st.markdown(f'<span class="ipa-missing-text">音标缺失</span>', unsafe_allow_html=True)
-
-                    if translation != "数据缺失":
-                         audio_html = generate_base64_audio(translation, lang_data['lang_code'])
-                         st.markdown(audio_html, unsafe_allow_html=True) 
-            
-            st.markdown("---") 
-
-            # --- 卡片反面（仅在 card_flipped=True 时显示）---
-            
-            if st.session_state.card_flipped:
-                dwell_time = time.time() - st.session_state.start_time
-                
-                st.subheader(f"✅ 中文释义: {current_word['cn']}")
-                
-                for key, lang_data in LANG_MAP.items():
-                    lang_content = current_word.get(key, {})
-                    
-                    st.markdown(f"###### {lang_data['name']} 详情")
-                    
-                    col_sound, col_memo = st.columns([1, 2])
-                    
-                    with col_sound:
-                        st.markdown(f"**谐音**: {lang_content.get('sound', '缺失')}")
-                    with col_memo:
-                        st.markdown(f"💡 **记忆法**: {lang_content.get('memo', '缺失')}") 
-                    
-                st.markdown("---")
-                
-                st.info(f"⏱️ 本轮思考用时: {dwell_time:.1f} 秒")
-                st.markdown("**(无需手动评分，点击 '上一个/下一个' 自动评级)**")
-
-
-    # --- 关键触发按钮 (保留隐藏的翻转按钮) ---
-    if st.button("点击翻转卡片", key="flip_card_trigger"):
-        st.session_state.card_flipped = not st.session_state.card_flipped
-        st.session_state[RERUN_TRIGGER] = True 
-        
-    st.markdown("""
-    <style>
-    /* 隐藏用于触发翻转的按钮，但保留其功能 */
-    div[data-testid="stButton"] button[key="flip_card_trigger"] {
-        display: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-    # --- 顶层重刷逻辑：解决回调函数警告 ---
-    if st.session_state.get(RERUN_TRIGGER):
-        st.session_state[RERUN_TRIGGER] = False
-        st.rerun()
-
-
-if __name__ == "__main__":
-    main()
