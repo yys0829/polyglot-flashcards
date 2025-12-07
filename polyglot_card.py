@@ -102,6 +102,11 @@ def apply_compact_styles():
         display: block; 
     }
 
+    /* 隐藏用于触发翻转的按钮，但保留其功能 (位于 main() 函数的底部) */
+    div[data-testid="stButton"] button[key="flip_card_trigger"] {
+        display: none;
+    }
+    
     </style>
     """, unsafe_allow_html=True)
 
@@ -227,9 +232,8 @@ def update_word_stats(word_entry, quality):
     
     return word_entry, quality_text
 
-# --- 4. Base64 音频生成函数 (手机兼容 - 不变) ---
-@st.cache_data
-def generate_base64_audio(text, lang_code):
+# --- 4. Base64 音频生成函数 (已移除缓存) ---
+def generate_base64_audio(text, lang_code): # 注意：这里已移除 @st.cache_data
     """使用 gTTS 生成音频，并将其 Base64 编码后嵌入到 HTML 中。"""
     try:
         tts = gTTS(text=text, lang=lang_code)
@@ -494,14 +498,7 @@ def main():
         st.session_state.card_flipped = not st.session_state.card_flipped
         st.session_state[RERUN_TRIGGER] = True 
         
-    st.markdown("""
-    <style>
-    /* 隐藏用于触发翻转的按钮，但保留其功能 */
-    div[data-testid="stButton"] button[key="flip_card_trigger"] {
-        display: none;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    # 注意：隐藏按钮的 CSS 已经在 apply_compact_styles() 中
 
     # --- 顶层重刷逻辑：解决回调函数警告 ---
     if st.session_state.get(RERUN_TRIGGER):
